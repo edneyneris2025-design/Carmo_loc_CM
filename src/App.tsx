@@ -21,6 +21,7 @@ import { PolygonOverlay } from './components/PolygonOverlay';
 import { SideButtonPanel } from './components/SideButtonPanel';
 import { DxfImportModal } from './components/DxfImportModal';
 import { ExportImageModal } from './components/ExportImageModal';
+import { LocationSearchBar } from './components/LocationSearchBar';
 import { DxfParsedData, PolygonTransform, PolygonStyle, InteractionMode } from './types/dxf';
 import { parseDxfContent } from './utils/dxfParser';
 import { SAMPLE_DXF_FILES } from './utils/sampleDxf';
@@ -75,6 +76,25 @@ export default function App() {
   const [satelliteProviderName, setSatelliteProviderName] = useState<string>(
     'Esri World Imagery (Alta Resolução)'
   );
+
+  // Target location for map fly-to navigation (from LocationSearchBar)
+  const [flyToLocation, setFlyToLocation] = useState<{
+    lat: number;
+    lng: number;
+    zoom?: number;
+    timestamp: number;
+    name?: string;
+  } | null>(null);
+
+  const handleSelectLocation = (lat: number, lng: number, name: string) => {
+    setFlyToLocation({
+      lat,
+      lng,
+      zoom: 17,
+      timestamp: Date.now(),
+      name,
+    });
+  };
 
   // ResizeObserver to track container size accurately
   useEffect(() => {
@@ -144,6 +164,7 @@ export default function App() {
         isMapInteractionMode={interactionMode === 'map'}
         onMapCenterChange={(lat, lng, zoom) => setMapCoords({ lat, lng, zoom })}
         onProviderChange={setSatelliteProviderName}
+        flyToLocation={flyToLocation}
       />
 
       {/* 
@@ -163,9 +184,9 @@ export default function App() {
       {/* 
         3. TOP FLOATING CONTROL BAR (Mobile optimized)
       */}
-      <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+      <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
         {/* Title & Action Buttons */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        <div className="flex items-center gap-2 pointer-events-auto shrink-0">
           <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-xl">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
             <div>
@@ -201,8 +222,13 @@ export default function App() {
           </button>
         </div>
 
+        {/* Location Search Input Box (Requested: Digitar local desejado) */}
+        <div className="w-full md:max-w-md pointer-events-auto">
+          <LocationSearchBar onSelectLocation={handleSelectLocation} />
+        </div>
+
         {/* Quick Mode Switcher Pills on Header */}
-        <div className="pointer-events-auto flex items-center justify-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-xl self-center">
+        <div className="pointer-events-auto flex items-center justify-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-xl self-center shrink-0">
           <button
             type="button"
             onClick={() => setInteractionMode('move')}
@@ -264,7 +290,7 @@ export default function App() {
       {/* 
         4. FLOATING GESTURE HINT BANNER
       */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all">
+      <div className="absolute top-32 sm:top-28 md:top-20 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all">
         <div className="px-3.5 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-[11px] font-medium text-slate-200 shadow-lg flex items-center gap-2">
           {interactionMode === 'move' && (
             <>

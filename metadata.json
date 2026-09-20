@@ -1,6 +1,6 @@
 {
   "name": "Remix Visualizador DXF Satélite",
-  "description": "Visualização e sobreposição de arquivos DXF sobre imagem de satélite com controles de ajuste e exportação em PNG de alta resolução.",
+  "description": "Visualização e sobreposição de arquivos DXF sobre imagem de satélite com busca de locais, controles de ajuste e exportação em PNG.",
   "requestFramePermissions": [
     "geolocation"
   ],

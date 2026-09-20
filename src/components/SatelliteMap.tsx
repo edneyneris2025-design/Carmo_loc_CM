@@ -6,6 +6,7 @@ interface SatelliteMapProps {
   isMapInteractionMode: boolean;
   onMapCenterChange?: (lat: number, lng: number, zoom: number) => void;
   onProviderChange?: (providerName: string) => void;
+  flyToLocation?: { lat: number; lng: number; zoom?: number; timestamp: number; name?: string } | null;
 }
 
 export type SatelliteLayerType = 'esri' | 'esri_clarity' | 'google_hybrid' | 'osm';
@@ -42,10 +43,12 @@ export const SatelliteMap: React.FC<SatelliteMapProps> = ({
   isMapInteractionMode,
   onMapCenterChange,
   onProviderChange,
+  flyToLocation,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const searchMarkerRef = useRef<L.Marker | null>(null);
 
   const [activeProvider, setActiveProvider] = useState<SatelliteLayerType>('esri');
   const [showLayerMenu, setShowLayerMenu] = useState(false);
@@ -140,6 +143,56 @@ export const SatelliteMap: React.FC<SatelliteMapProps> = ({
       map.dragging.disable();
     }
   }, [isMapInteractionMode]);
+
+  // Handle flying to requested location (from LocationSearchBar or presets)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !flyToLocation) return;
+    const map = mapInstanceRef.current;
+    const targetZoom = flyToLocation.zoom || 16;
+
+    map.flyTo([flyToLocation.lat, flyToLocation.lng], targetZoom, {
+      duration: 1.5,
+    });
+
+    // Remove previous search marker if any
+    if (searchMarkerRef.current) {
+      map.removeLayer(searchMarkerRef.current);
+      searchMarkerRef.current = null;
+    }
+
+    // Add animated custom pulse pin for the searched location
+    const customIcon = L.divIcon({
+      className: 'search-location-pin',
+      html: `
+        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; transform: translate(-50%, -100%);">
+          <div style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background: rgba(245, 158, 11, 0.45); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <div style="width: 22px; height: 22px; border-radius: 50%; background: #f59e0b; border: 2.5px solid #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #0f172a;"></div>
+          </div>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+    });
+
+    const marker = L.marker([flyToLocation.lat, flyToLocation.lng], { icon: customIcon }).addTo(map);
+
+    if (flyToLocation.name) {
+      marker
+        .bindPopup(
+          `<div style="font-family: sans-serif; font-size: 11px; font-weight: bold; color: #0f172a; padding: 2px 4px; max-width: 220px; text-align: center;">
+            ${flyToLocation.name}
+            <div style="font-size: 9px; font-weight: normal; color: #64748b; margin-top: 2px; font-family: monospace;">
+              ${flyToLocation.lat.toFixed(5)}, ${flyToLocation.lng.toFixed(5)}
+            </div>
+          </div>`,
+          { closeButton: false, offset: [0, -20] }
+        )
+        .openPopup();
+    }
+
+    searchMarkerRef.current = marker;
+  }, [flyToLocation]);
 
   const handleZoomIn = () => {
     if (mapInstanceRef.current) {
